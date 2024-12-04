@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      .modal {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        width: 400px;
+        text-align: left;
+      }
+
+      #donationForm input,
+      #donationForm button {
+        width: 100%;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Donation Form -->
+    <div id="donation-form" class="modal">
+      <div class="modal-content">
+        <h2>Donate to Campaign</h2>
+        <form id="donationForm">
+          <label for="walletAddress">Your Metamask Wallet Address:</label>
+          <input
+            type="text"
+            id="walletAddress"
+            required
+            placeholder="Enter your wallet address"
+          />
+
+          <label for="donationAmount">Donation Amount (in Ether):</label>
+          <input
+            type="number"
+            id="donationAmount"
+            min="0.01"
+            step="0.01"
+            required
+            placeholder="Enter amount"
+          />
+
+          <label>
+            <input type="checkbox" id="agreeCheckbox" /> I agree to the terms
+            and conditions.
+          </label>
+
+          <button type="submit" id="donateButton" disabled>Donate</button>
+        </form>
+        <button id="closeForm">Close</button>
+      </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <script>
+      // Get the URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const campaignIdString = urlParams.get("campaignId");
+      const campaignId = parseInt(campaignIdString, 10);
+
+      // Display the campaign ID or use it in your logic
+      console.log("Campaign ID:", campaignId);
+
+      const form = document.getElementById("donation-form");
+
+      const donateButton = document.getElementById("donateButton");
+      donateButton.onclick = async (event) => {
+        event.preventDefault();
+        const walletAddress = document.getElementById("walletAddress").value;
+        const donationAmount = document.getElementById("donationAmount").value;
+
+        if (walletAddress && donationAmount) {
+          try {
+            await donateToCampaign(campaignId, walletAddress, donationAmount);
+          } catch (err) {
+            console.error("Donation failed:", err);
+          }
+        }
+      };
+
+      document.getElementById("closeForm").addEventListener("click", () => {
+        const form = document.getElementById("donation-form");
+        form.style.display = "none";
+      });
+
+      // Enable donate button when checkbox is checked
+      document
+        .getElementById("agreeCheckbox")
+        .addEventListener("change", (event) => {
+          document.getElementById("donateButton").disabled =
+            !event.target.checked;
+        });
+
+      // Connect to Metamask and send transaction
+      async function donateToCampaign(campaignId, donorAddress, amount) {
+        if (typeof window.ethereum !== "undefined") {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          await provider.send("eth_requestAccounts", []);
+          const signer = provider.getSigner();
+
+          const contractAddress = "0x6db22ff8b71590944B6C133f75De22724431094A";
+          const contractABI = [
+            {
+              inputs: [],
+              stateMutability: "nonpayable",
+              type: "constructor",
+            },
+            {
+              anonymous: false,
+              inputs: [
+                {
+                  indexed: false,
+                  internalType: "uint256",
+                  name: "campaignId",
+                  type: "uint256",
+                },
+                {
+                  indexed: false,
+                  internalType: "address",
+                  name: "donor",
+                  type: "address",
+                },
+                {
+                  indexed: false,
+                  internalType: "uint256",
+                  name: "amount",
+                  type: "uint256",
+                },
+              ],
+              name: "DonationReceived",
+              type: "event",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+              ],
+              name: "campaigns",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "campaignId",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "fundsRaised",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "balance",
+                  type: "uint256",
+                },
+                {
+                  internalType: "address payable",
+                  name: "initiatorAddress",
+                  type: "address",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "_campaignId",
+                  type: "uint256",
+                },
+              ],
+              name: "donate",
+              outputs: [],
+              stateMutability: "payable",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "_campaignId",
+                  type: "uint256",
+                },
+              ],
+              name: "getCampaignDetails",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+                {
+                  internalType: "address",
+                  name: "",
+                  type: "address",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [],
+              name: "totalCampaigns",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+          ];
+          const contract = new ethers.Contract(
+            contractAddress,
+            contractABI,
+            signer
+          );
+
+          const transaction = await contract.donate(campaignId, {
+            from: donorAddress,
+            value: ethers.utils.parseEther(amount),
+          });
+
+          console.log("Transaction:", transaction);
+        } else {
+          alert("Metamask is not installed!");
+        }
+      }
+    </script>
+  </body>
+</html>
